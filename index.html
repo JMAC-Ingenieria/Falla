@@ -7,7 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Three.js para la palanca -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Firebase (Versión compatible con scripts CDN) -->
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
+<!-- Chart.js para las gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
   :root{
     --room:#141414;
@@ -17,11 +24,8 @@
     --metal-hi:#a9adb0;
     --bezel:#0c0d0e;
     --amber:#ffb020;
-    --amber-dim:#5c3d10;
     --red-on:#ff3b30;
-    --red-off:#3d1712;
     --green:#39d97a;
-    --green-dim:#123b23;
     --paper:#efe9da;
     --paper-2:#e3dcc8;
     --ink:#2c2a24;
@@ -31,8 +35,7 @@
   html,body{height:100%;}
   body{
     font-family:'Oswald',sans-serif;
-    background:
-      radial-gradient(ellipse at 50% -10%, #24262a 0%, var(--room) 55%);
+    background: radial-gradient(ellipse at 50% -10%, #24262a 0%, var(--room) 55%);
     color:var(--metal-hi);
     min-height:100vh;
     display:flex;
@@ -41,380 +44,97 @@
     padding:34px 18px 50px;
   }
 
-  .stage{
-    perspective:2200px;
-    width:100%;
-    max-width:1180px;
-  }
+  .stage{ width:100%; max-width:1180px; perspective:2200px; }
 
-  header.topbar{
-    text-align:center;
-    margin-bottom:26px;
-  }
+  header.topbar{ text-align:center; margin-bottom:26px; }
   header.topbar h1{
-    font-size:2.2rem;
-    font-weight:600;
-    letter-spacing:.02em;
-    color:var(--metal-hi);
-    text-transform:uppercase;
-    margin-top:6px;
+    font-size:2.2rem; font-weight:600; letter-spacing:.02em;
+    color:var(--metal-hi); text-transform:uppercase; margin-top:6px;
     text-shadow:0 1px 0 rgba(255,255,255,.06), 0 2px 3px rgba(0,0,0,.6);
   }
-  header.topbar .subtitle{
-    font-family:'JetBrains Mono',monospace;
-    color:#8a8d90;
-    font-size:.85rem;
-    margin-top:8px;
-  }
+  header.topbar .subtitle{ font-family:'JetBrains Mono',monospace; color:#8a8d90; font-size:.85rem; margin-top:8px; }
 
-  .dashboard{
-    display:flex;
-    gap:24px;
-    transform: rotateX(4deg);
-    transform-style:preserve-3d;
-    align-items:stretch;
-    flex-wrap:wrap;
-  }
+  .dashboard{ display:flex; gap:24px; transform: rotateX(4deg); transform-style:preserve-3d; align-items:stretch; flex-wrap:wrap; }
 
-  /* ================= RIG (metal cabinet) ================= */
+  /* ================= RIG ================= */
   .rig{
-    flex:2 1 620px;
-    position:relative;
-    background:
-      repeating-linear-gradient(105deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 3px),
-      linear-gradient(165deg, var(--metal-3) 0%, var(--metal-1) 65%);
-    border-radius:10px;
-    padding:26px 30px 22px;
-    box-shadow:
-      0 30px 45px -18px rgba(0,0,0,.75),
-      0 2px 0 rgba(255,255,255,.08) inset,
-      0 -6px 14px rgba(0,0,0,.5) inset;
-    border:1px solid #1c1d1f;
-    transition:transform .25s ease;
+    flex:2 1 620px; position:relative;
+    background: repeating-linear-gradient(105deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 3px),
+                linear-gradient(165deg, var(--metal-3) 0%, var(--metal-1) 65%);
+    border-radius:10px; padding:26px 30px 22px;
+    box-shadow: 0 30px 45px -18px rgba(0,0,0,.75), 0 2px 0 rgba(255,255,255,.08) inset, 0 -6px 14px rgba(0,0,0,.5) inset;
+    border:1px solid #1c1d1f; transition:transform .25s ease;
   }
   .rig.shudder{ animation:shudder .4s ease-in-out 2; }
+  .rivet{ position:absolute; width:11px;height:11px; border-radius:50%; background:radial-gradient(circle at 32% 30%, #d7dbde, #7d8186 55%, #35373a 100%); box-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .rivet.tl{top:12px;left:12px;} .rivet.tr{top:12px;right:12px;} .rivet.bl{bottom:12px;left:12px;} .rivet.br{bottom:12px;right:12px;}
+  .hazard-strip{ height:9px; border-radius:5px; margin-bottom:20px; background:repeating-linear-gradient(135deg, #f0b90b 0 12px, #1a1a1a 12px 24px); box-shadow:0 1px 3px rgba(0,0,0,.6) inset; }
+  .panel-label{ font-family:'JetBrains Mono',monospace; font-size:.66rem; letter-spacing:.12em; color:#a7abae; text-align:center; margin-bottom:15px; text-transform:uppercase; }
 
-  .rivet{
-    position:absolute;
-    width:11px;height:11px;
-    border-radius:50%;
-    background:radial-gradient(circle at 32% 30%, #d7dbde, #7d8186 55%, #35373a 100%);
-    box-shadow:0 1px 2px rgba(0,0,0,.6);
-  }
-  .rivet.tl{top:12px;left:12px;} .rivet.tr{top:12px;right:12px;}
-  .rivet.bl{bottom:12px;left:12px;} .rivet.br{bottom:12px;right:12px;}
-
-  .hazard-strip{
-    height:9px;
-    border-radius:5px;
-    margin-bottom:20px;
-    background:repeating-linear-gradient(135deg, #f0b90b 0 12px, #1a1a1a 12px 24px);
-    box-shadow:0 1px 3px rgba(0,0,0,.6) inset;
-  }
-
-  .panel-label{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.66rem;
-    letter-spacing:.12em;
-    color:#a7abae;
-    text-align:center;
-    margin-bottom:15px;
-    text-transform:uppercase;
-  }
-
-  /* ---- Indicator glass windows ---- */
-  .window-row{
-    display:flex;
-    justify-content:center;
-    gap:14px;
-    margin-bottom:40px; /* Aumentado el margen inferior al quitar el medidor */
-  }
-  .window{
-    width:105px;height:120px;
-    background:#050505;
-    border-radius:6px;
-    border:7px solid var(--bezel);
-    box-shadow:
-      inset 0 6px 12px rgba(0,0,0,.9),
-      inset 0 -3px 6px rgba(255,255,255,.04),
-      0 2px 4px rgba(0,0,0,.5);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    overflow:hidden;
-  }
-  .window::after{
-    content:'';
-    position:absolute; inset:0;
-    background:linear-gradient(120deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 68%, rgba(255,255,255,.05) 100%);
-    pointer-events:none;
-  }
+  /* ---- Windows ---- */
+  .window-row{ display:flex; justify-content:center; gap:14px; margin-bottom:40px; }
+  .window{ width:105px;height:120px; background:#050505; border-radius:6px; border:7px solid var(--bezel); box-shadow:inset 0 6px 12px rgba(0,0,0,.9), inset 0 -3px 6px rgba(255,255,255,.04), 0 2px 4px rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+  .window::after{ content:''; position:absolute; inset:0; background:linear-gradient(120deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 68%, rgba(255,255,255,.05) 100%); pointer-events:none; }
   .window svg{ width:50px; height:50px; filter:drop-shadow(0 0 6px rgba(255,176,32,.55)); }
   .window.spin svg{ opacity:.55; filter:blur(2px); }
 
   /* ---- Lever ---- */
-  .lever-zone{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    margin-bottom:22px;
-  }
-  .lever-mount{
-    width:150px; height:90px;
-    position:relative;
-  }
-  .lever-track{
-    position:absolute;
-    bottom:0; left:50%;
-    width:110px; height:60px;
-    transform:translateX(-50%);
-    border:3px solid #1a1b1c;
-    border-bottom:none;
-    border-radius:70px 70px 0 0;
-    background:linear-gradient(180deg, #232426, #17181a);
-    box-shadow:inset 0 3px 6px rgba(0,0,0,.7);
-  }
-  
-  #lever3d-canvas{
-    position:absolute;
-    bottom:-10px; left:50%;
-    transform:translateX(-50%);
-    width:150px; height:200px;
-    z-index:10;
-  }
-
-  /* ZONA TÁCTIL INVISIBLE PARA LA BOLA ROJA */
-  .hitbox{
-    position: absolute;
-    top: -95px; /* Ajustado para coincidir con la bola roja */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: transparent; /* Invisible */
-    z-index: 20;
-    cursor: pointer;
-    border: none;
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .hitbox:focus-visible{
-    border: 2px solid var(--amber);
-  }
-
-  .lever-caption{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.68rem;
-    letter-spacing:.1em;
-    color:#a7abae;
-    margin-top:20px;
-    text-transform:uppercase;
-  }
-  .lever-caption.disabled{ color:#5c5f61; }
+  .lever-zone{ display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
+  .lever-mount{ width:150px; height:90px; position:relative; }
+  .lever-track{ position:absolute; bottom:0; left:50%; width:110px; height:60px; transform:translateX(-50%); border:3px solid #1a1b1c; border-bottom:none; border-radius:70px 70px 0 0; background:linear-gradient(180deg, #232426, #17181a); box-shadow:inset 0 3px 6px rgba(0,0,0,.7); }
+  #lever3d-canvas{ position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); width:150px; height:200px; z-index:10; }
+  .hitbox{ position: absolute; top: -95px; left: 50%; transform: translateX(-50%); width: 90px; height: 90px; border-radius: 50%; background: transparent; z-index: 20; cursor: pointer; border: none; outline: none; -webkit-tap-highlight-color: transparent; }
+  .hitbox:focus-visible{ border: 2px solid var(--amber); }
+  .lever-caption{ font-family:'JetBrains Mono',monospace; font-size:.68rem; letter-spacing:.1em; color:#a7abae; margin-top:20px; text-transform:uppercase; }
 
   /* ---- Beacon ---- */
-  .beacon{
-    position:absolute;
-    top:-15px; right:26px;
-    width:26px; height:22px;
-    border-radius:50% 50% 4px 4px / 60% 60% 4px 4px;
-    background:radial-gradient(circle at 35% 30%, #7a2a24, #3d1712 70%);
-    box-shadow:0 2px 4px rgba(0,0,0,.6);
-  }
-  .beacon.active{
-    animation:beaconFlash 1.4s ease-in-out;
-  }
+  .beacon{ position:absolute; top:-15px; right:26px; width:26px; height:22px; border-radius:50% 50% 4px 4px / 60% 60% 4px 4px; background:radial-gradient(circle at 35% 30%, #7a2a24, #3d1712 70%); box-shadow:0 2px 4px rgba(0,0,0,.6); }
+  .beacon.active{ animation:beaconFlash 1.4s ease-in-out; }
 
   /* ---- LCD readouts ---- */
-  .lcd-row{
-    display:flex;
-    justify-content:center;
-    gap:1px;
-    background:#1a1b1c;
-    border-radius:6px;
-    overflow:hidden;
-    border:1px solid #0c0d0e;
-  }
-  .lcd{
-    flex:1;
-    background:linear-gradient(180deg,#0b0c0d,#050506);
-    padding:12px 8px 10px;
-    text-align:center;
-    position:relative;
-  }
-  .lcd::after{
-    content:'';
-    position:absolute; inset:0;
-    background:repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 3px);
-    pointer-events:none;
-  }
-  .lcd .digits{
-    font-family:'JetBrains Mono',monospace;
-    font-size:1.5rem;
-    font-weight:600;
-    letter-spacing:.05em;
-    color:var(--amber);
-    text-shadow:0 0 8px rgba(255,176,32,.55);
-  }
+  .lcd-row{ display:flex; justify-content:center; gap:1px; background:#1a1b1c; border-radius:6px; overflow:hidden; border:1px solid #0c0d0e; }
+  .lcd{ flex:1; background:linear-gradient(180deg,#0b0c0d,#050506); padding:12px 8px 10px; text-align:center; position:relative; }
+  .lcd::after{ content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 3px); pointer-events:none; }
+  .lcd .digits{ font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:600; letter-spacing:.05em; color:var(--amber); text-shadow:0 0 8px rgba(255,176,32,.55); }
   .lcd.fail .digits{ color:var(--red-on); text-shadow:0 0 8px rgba(255,59,48,.6); }
-  .lcd .cap{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.58rem;
-    letter-spacing:.1em;
-    color:#767a7d;
-    margin-top:4px;
-    text-transform:uppercase;
-  }
+  .lcd .cap{ font-family:'JetBrains Mono',monospace; font-size:.58rem; letter-spacing:.1em; color:#767a7d; margin-top:4px; text-transform:uppercase; }
 
-  /* ================= TICKER (paper log) ================= */
-  .ticker{
-    flex:1 1 280px;
-    position:relative;
-    background:
-      repeating-linear-gradient(0deg, rgba(0,0,0,.015) 0 2px, transparent 2px 4px),
-      linear-gradient(180deg, var(--paper), var(--paper-2));
-    border-radius:4px;
-    padding:22px 26px 20px 40px;
-    box-shadow:
-      0 30px 45px -18px rgba(0,0,0,.7),
-      0 2px 0 rgba(255,255,255,.5) inset;
-    display:flex;
-    flex-direction:column;
-    min-height:420px;
-    max-height:560px;
-  }
-  .ticker::before{
-    content:'';
-    position:absolute;
-    top:0; bottom:0; left:14px;
-    width:10px;
-    background-image:radial-gradient(circle, var(--room) 3.2px, transparent 3.6px);
-    background-size:10px 22px;
-    background-repeat:repeat-y;
-    opacity:.9;
-  }
-  .ticker-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    border-bottom:1px dashed var(--ink-soft);
-    padding-bottom:10px;
-    margin-bottom:12px;
-  }
-  .ticker-head h3{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.8rem;
-    letter-spacing:.08em;
-    color:var(--ink);
-    text-transform:uppercase;
-  }
-  .ticker-head .live{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.6rem;
-    color:#3f8a5c;
-    display:flex;
-    align-items:center;
-    gap:5px;
-  }
-  .ticker-head .live::before{
-    content:'';
-    width:6px;height:6px;
-    background:#3f8a5c;
-    border-radius:50%;
-    animation:pulse 2s infinite;
-  }
-  .ticker-list{
-    list-style:none;
-    overflow-y:auto;
-    flex:1;
-  }
+  /* ================= TICKER & CHARTS ================= */
+  .right-panel { flex:1 1 280px; display:flex; flex-direction:column; gap:20px; }
+  
+  .ticker{ position:relative; background: repeating-linear-gradient(0deg, rgba(0,0,0,.015) 0 2px, transparent 2px 4px), linear-gradient(180deg, var(--paper), var(--paper-2)); border-radius:4px; padding:22px 26px 20px 40px; box-shadow: 0 30px 45px -18px rgba(0,0,0,.7), 0 2px 0 rgba(255,255,255,.5) inset; display:flex; flex-direction:column; flex:1; min-height: 250px; }
+  .ticker::before{ content:''; position:absolute; top:0; bottom:0; left:14px; width:10px; background-image:radial-gradient(circle, var(--room) 3.2px, transparent 3.6px); background-size:10px 22px; background-repeat:repeat-y; opacity:.9; }
+  .ticker-head{ display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px dashed var(--ink-soft); padding-bottom:10px; margin-bottom:12px; }
+  .ticker-head h3{ font-family:'JetBrains Mono',monospace; font-size:.8rem; letter-spacing:.08em; color:var(--ink); text-transform:uppercase; }
+  .ticker-head .live{ font-family:'JetBrains Mono',monospace; font-size:.6rem; color:#3f8a5c; display:flex; align-items:center; gap:5px; }
+  .ticker-head .live::before{ content:''; width:6px;height:6px; background:#3f8a5c; border-radius:50%; animation:pulse 2s infinite; }
+  .ticker-list{ list-style:none; overflow-y:auto; flex:1; }
   .ticker-list::-webkit-scrollbar{ width:5px; }
   .ticker-list::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:4px; }
-  .ticker-item{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.74rem;
-    color:var(--ink);
-    padding:9px 0;
-    border-bottom:1px dashed #c9c0a4;
-    animation:slideIn .25s ease-out;
-  }
-  .ticker-item .row1{
-    display:flex; justify-content:space-between;
-    color:var(--ink-soft);
-    margin-bottom:3px;
-  }
+  .ticker-item{ font-family:'JetBrains Mono',monospace; font-size:.74rem; color:var(--ink); padding:9px 0; border-bottom:1px dashed #c9c0a4; animation:slideIn .25s ease-out; }
+  .ticker-item .row1{ display:flex; justify-content:space-between; color:var(--ink-soft); margin-bottom:3px; }
   .ticker-item .status{ font-weight:600; letter-spacing:.02em; }
   .ticker-item .status.ok{ color:#2f7d4f; }
   .ticker-item .status.fail{ color:#b3341f; }
-  .empty-log{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.74rem;
-    color:var(--ink-soft);
-    line-height:1.7;
-    padding-top:6px;
-  }
+  .empty-log{ font-family:'JetBrains Mono',monospace; font-size:.74rem; color:var(--ink-soft); line-height:1.7; padding-top:6px; }
+
+  /* Chart Container */
+  .chart-container { background: #1a1b1c; border: 1px solid #2a2b2c; border-radius: 6px; padding: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
 
   /* ================= Nameplate ================= */
-  .nameplate{
-    margin-top:22px;
-    width:100%;
-    max-width:1180px;
-    display:grid;
-    grid-template-columns: 2fr 1.5fr 1fr; /* Ajustado al quitar la revisión */
-    background:linear-gradient(180deg,#7d8186,#54585c);
-    border-radius:6px;
-    border:1px solid #2a2b2c;
-    box-shadow:0 10px 22px -10px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.25) inset;
-    overflow:hidden;
-  }
-  .nameplate div{
-    padding:11px 18px;
-    border-right:1px solid rgba(0,0,0,.2);
-  }
+  .nameplate{ margin-top:22px; width:100%; max-width:1180px; display:grid; grid-template-columns: 2fr 1.5fr 1fr; background:linear-gradient(180deg,#7d8186,#54585c); border-radius:6px; border:1px solid #2a2b2c; box-shadow:0 10px 22px -10px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.25) inset; overflow:hidden; }
+  .nameplate div{ padding:11px 18px; border-right:1px solid rgba(0,0,0,.2); }
   .nameplate div:last-child{ border-right:none; }
-  .nameplate .k{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.56rem;
-    letter-spacing:.1em;
-    color:#2b2c2d;
-    opacity:.75;
-  }
-  .nameplate .v{
-    font-family:'Oswald',sans-serif;
-    font-size:.86rem;
-    font-weight:500;
-    color:#1c1d1e;
-    text-shadow:0 1px 0 rgba(255,255,255,.35);
-    margin-top:2px;
-  }
+  .nameplate .k{ font-family:'JetBrains Mono',monospace; font-size:.56rem; letter-spacing:.1em; color:#2b2c2d; opacity:.75; }
+  .nameplate .v{ font-family:'Oswald',sans-serif; font-size:.86rem; font-weight:500; color:#1c1d1e; text-shadow:0 1px 0 rgba(255,255,255,.35); margin-top:2px; }
 
-  /* ================= animations ================= */
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(63,138,92,.6);}
-    70%{box-shadow:0 0 0 7px rgba(63,138,92,0);}
-    100%{box-shadow:0 0 0 0 rgba(63,138,92,0);}
-  }
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(63,138,92,.6);} 70%{box-shadow:0 0 0 7px rgba(63,138,92,0);} 100%{box-shadow:0 0 0 0 rgba(63,138,92,0);} }
   @keyframes slideIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
-  @keyframes shudder{
-    0%,100%{ transform:translate(0,0) rotateX(4deg); }
-    20%{ transform:translate(-2px,1px) rotateX(4deg); }
-    40%{ transform:translate(2px,-1px) rotateX(4deg); }
-    60%{ transform:translate(-1px,2px) rotateX(4deg); }
-    80%{ transform:translate(1px,-2px) rotateX(4deg); }
-  }
-  @keyframes beaconFlash{
-    0%,100%{ background:radial-gradient(circle at 35% 30%, #7a2a24, #3d1712 70%); box-shadow:0 2px 4px rgba(0,0,0,.6); }
-    15%,45%,75%{ background:radial-gradient(circle at 35% 30%, #ff8a76, #ff3b30 70%); box-shadow:0 0 18px 6px rgba(255,59,48,.75), 0 2px 4px rgba(0,0,0,.6); }
-  }
+  @keyframes shudder{ 0%,100%{ transform:translate(0,0) rotateX(4deg); } 20%{ transform:translate(-2px,1px) rotateX(4deg); } 40%{ transform:translate(2px,-1px) rotateX(4deg); } 60%{ transform:translate(-1px,2px) rotateX(4deg); } 80%{ transform:translate(1px,-2px) rotateX(4deg); } }
+  @keyframes beaconFlash{ 0%,100%{ background:radial-gradient(circle at 35% 30%, #7a2a24, #3d1712 70%); box-shadow:0 2px 4px rgba(0,0,0,.6); } 15%,45%,75%{ background:radial-gradient(circle at 35% 30%, #ff8a76, #ff3b30 70%); box-shadow:0 0 18px 6px rgba(255,59,48,.75), 0 2px 4px rgba(0,0,0,.6); } }
 
   @media (max-width:760px){
-    .dashboard{ transform:none; }
-    .stage{ perspective:none; }
-    .window{ width:80px; height:100px; }
-    .window svg{ width:40px; height:40px; }
-    .nameplate{ grid-template-columns:1fr; } /* En celular se apila */
+    .dashboard{ transform:none; } .stage{ perspective:none; } .window{ width:80px; height:100px; } .window svg{ width:40px; height:40px; } .nameplate{ grid-template-columns:1fr; } 
   }
 </style>
 </head>
@@ -428,10 +148,8 @@
 
   <div class="dashboard">
     <section class="rig" id="rig">
-      <div class="rivet tl"></div><div class="rivet tr"></div>
-      <div class="rivet bl"></div><div class="rivet br"></div>
+      <div class="rivet tl"></div><div class="rivet tr"></div><div class="rivet bl"></div><div class="rivet br"></div>
       <div class="beacon" id="beacon"></div>
-
       <div class="hazard-strip"></div>
       <div class="panel-label">Muestreo aleatorio por elemento</div>
 
@@ -445,37 +163,32 @@
         <div class="lever-mount">
           <div class="lever-track"></div>
           <canvas id="lever3d-canvas"></canvas>
-          <!-- ZONA DE CLICK INVISIBLE MÁS GRANDE -->
           <button class="hitbox" id="btn-hitbox" aria-label="Tirar de la palanca"></button>
         </div>
         <div class="lever-caption" id="leverCaption">Tirar de la palanca para ensayar</div>
       </div>
 
       <div class="lcd-row">
-        <div class="lcd">
-          <div class="digits" id="count-total">000</div>
-          <div class="cap">Ensayos</div>
-        </div>
-        <div class="lcd fail">
-          <div class="digits" id="count-fails">000</div>
-          <div class="cap">Fallos</div>
-        </div>
-        <div class="lcd">
-          <div class="digits" id="count-rate" style="font-size:1.05rem;">0.0000%</div>
-          <div class="cap">Tasa</div>
-        </div>
+        <div class="lcd"><div class="digits" id="count-total">000</div><div class="cap">Ensayos Globales</div></div>
+        <div class="lcd fail"><div class="digits" id="count-fails">000</div><div class="cap">Fallos Globales</div></div>
+        <div class="lcd"><div class="digits" id="count-rate" style="font-size:1.05rem;">0.0000%</div><div class="cap">Tasa Global</div></div>
       </div>
     </section>
 
-    <aside class="ticker">
-      <div class="ticker-head">
-        <h3>Registro impreso</h3>
-        <span class="live">EN VIVO</span>
+    <div class="right-panel">
+      <!-- Ticker Panel -->
+      <aside class="ticker">
+        <div class="ticker-head"><h3>Registro de Red Global</h3><span class="live">EN VIVO</span></div>
+        <ul class="ticker-list" id="historyList">
+          <li class="empty-log">Conectando a la base de datos...</li>
+        </ul>
+      </aside>
+      
+      <!-- Chart Panel -->
+      <div class="chart-container">
+        <canvas id="statsChart" width="100" height="60"></canvas>
       </div>
-      <ul class="ticker-list" id="historyList">
-        <li class="empty-log">Sin ensayos registrados todavía.<br>Tire de la palanca para comenzar el muestreo.</li>
-      </ul>
-    </aside>
+    </div>
   </div>
 
   <div class="nameplate">
@@ -487,7 +200,101 @@
 
 <script>
   /* =========================================================
-     CONFIGURACIÓN DE LA PALANCA 3D AISLADA (Three.js)
+     1. CONFIGURACIÓN FIREBASE GLOBAL
+     ========================================================= */
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1drx56yrFOdYISkB4i68FHUGJXD4NpzA",
+    authDomain: "simulador-c59ce.firebaseapp.com",
+    databaseURL: "https://simulador-c59ce-default-rtdb.firebaseio.com",
+    projectId: "simulador-c59ce",
+    storageBucket: "simulador-c59ce.firebasestorage.app",
+    messagingSenderId: "711176014554",
+    appId: "1:711176014554:web:991576dfac150b24f0f3e3"
+  };
+
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  
+  // Referencias a la base de datos
+  const statsRef = db.ref('stats'); // Guarda los totales
+  const historyRef = db.ref('history'); // Guarda el log en vivo
+
+  // Variables Globales
+  let globalAttempts = 0;
+  let globalFails = 0;
+  
+  /* =========================================================
+     2. CONFIGURACIÓN GRÁFICA (Chart.js)
+     ========================================================= */
+  const ctx = document.getElementById('statsChart').getContext('2d');
+  const statsChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+          labels: ['Estables', 'Colapsos'],
+          datasets: [{
+              data: [0, 0],
+              backgroundColor: ['#2f7d4f', '#b3341f'],
+              borderColor: '#1a1b1c',
+              borderWidth: 2
+          }]
+      },
+      options: {
+          responsive: true,
+          plugins: {
+              legend: { position: 'bottom', labels: { color: '#a7abae', font: { family: 'JetBrains Mono' } } }
+          },
+          cutout: '70%'
+      }
+  });
+
+  /* =========================================================
+     3. LECTURA DE DATOS EN TIEMPO REAL (De la Nube al HTML)
+     ========================================================= */
+  const countTotalEl = document.getElementById('count-total');
+  const countFailsEl = document.getElementById('count-fails');
+  const countRateEl = document.getElementById('count-rate');
+  const historyList = document.getElementById('historyList');
+
+  // Escuchar estadísticas globales
+  statsRef.on('value', (snapshot) => {
+      const data = snapshot.val() || { total: 0, fails: 0 };
+      globalAttempts = data.total;
+      globalFails = data.fails;
+      
+      countTotalEl.textContent = String(globalAttempts).padStart(3,'0');
+      countFailsEl.textContent = String(globalFails).padStart(3,'0');
+      
+      if(globalAttempts > 0) {
+          countRateEl.textContent = ((globalFails / globalAttempts) * 100).toFixed(4) + '%';
+      }
+      
+      // Actualizar Gráfica
+      statsChart.data.datasets[0].data = [globalAttempts - globalFails, globalFails];
+      statsChart.update();
+  });
+
+  // Escuchar historial en vivo
+  historyRef.limitToLast(15).on('child_added', (snapshot) => {
+      const record = snapshot.val();
+      
+      // Quitar mensaje de "Conectando..." la primera vez
+      const emptyLog = document.querySelector('.empty-log');
+      if(emptyLog) emptyLog.remove();
+
+      const li = document.createElement('li');
+      li.className = 'ticker-item';
+      const statusHtml = record.failed
+        ? `<span class="status fail">COLAPSO — falla detectada</span>`
+        : `<span class="status ok">Estable — dentro de tolerancia</span>`;
+      
+      li.innerHTML = `<div class="row1"><span>[${record.time}]</span><span>ID ${record.id}</span></div>${statusHtml}`;
+      historyList.prepend(li);
+  });
+
+  /* =========================================================
+     4. PALANCA 3D Y LÓGICA DEL SIMULADOR
      ========================================================= */
   const lCanvas = document.getElementById('lever3d-canvas');
   let pull3DLever = () => {}; 
@@ -496,39 +303,28 @@
     const lRenderer = new THREE.WebGLRenderer({ canvas: lCanvas, alpha: true, antialias: true });
     lRenderer.setSize(150, 200);
     lRenderer.setPixelRatio(window.devicePixelRatio || 1);
-
     const lScene = new THREE.Scene();
     const lCamera = new THREE.PerspectiveCamera(45, 150/200, 0.1, 10);
-    lCamera.position.set(0, 1.3, 4); 
-    lCamera.lookAt(0, 0.6, 0);
+    lCamera.position.set(0, 1.3, 4); lCamera.lookAt(0, 0.6, 0);
 
     lScene.add(new THREE.AmbientLight(0x9099a3, 0.6));
     const lDirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    lDirLight.position.set(2, 5, 4);
-    lScene.add(lDirLight);
+    lDirLight.position.set(2, 5, 4); lScene.add(lDirLight);
 
     const leverPivot = new THREE.Group();
-    leverPivot.position.set(0, 0.1, 0); 
-    lScene.add(leverPivot);
+    leverPivot.position.set(0, 0.1, 0); lScene.add(leverPivot);
 
     const rodMat = new THREE.MeshStandardMaterial({ color:0xcfd3d6, metalness:0.85, roughness:0.25 });
     const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.4, 16), rodMat);
-    rod.position.y = 0.7; 
-    leverPivot.add(rod);
+    rod.position.y = 0.7; leverPivot.add(rod);
 
     const ballMat = new THREE.MeshStandardMaterial({ color:0xc0392b, metalness:0.35, roughness:0.3 });
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20), ballMat);
-    ball.position.y = 1.45; 
-    leverPivot.add(ball);
+    ball.position.y = 1.45; leverPivot.add(ball);
 
-    const REST_X = -0.45; 
-    const PULL_X = 0.8;   
-    leverPivot.rotation.x = REST_X;
+    const REST_X = -0.45; const PULL_X = 0.8; leverPivot.rotation.x = REST_X;
 
-    function render3D() {
-      requestAnimationFrame(render3D);
-      lRenderer.render(lScene, lCamera);
-    }
+    function render3D() { requestAnimationFrame(render3D); lRenderer.render(lScene, lCamera); }
     render3D();
 
     function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
@@ -541,7 +337,6 @@
       }
       requestAnimationFrame(frame);
     }
-
     pull3DLever = function() {
       tweenValue(REST_X, PULL_X, 260, v => leverPivot.rotation.x = v, () => {
         tweenValue(PULL_X, REST_X, 380, v => leverPivot.rotation.x = v);
@@ -549,9 +344,6 @@
     }
   }
 
-  /* =========================================================
-     LÓGICA DEL SIMULADOR 
-     ========================================================= */
   const ICONS = {
     bridge: `<svg viewBox="0 0 64 64"><path d="M6 40 Q32 12 58 40" fill="none" stroke="#ffb020" stroke-width="3" stroke-linecap="round"/><path d="M6 40h52" stroke="#ffb020" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 40v9M24 40v9M32 40v9M40 40v9M50 40v9" stroke="#ffb020" stroke-width="2.4" stroke-linecap="round"/></svg>`,
     truck: `<svg viewBox="0 0 64 64"><rect x="6" y="24" width="30" height="18" rx="1" fill="none" stroke="#ffb020" stroke-width="3"/><path d="M36 30h12l8 8v4H36z" fill="none" stroke="#ffb020" stroke-width="3" stroke-linejoin="round"/><circle cx="18" cy="46" r="5" fill="none" stroke="#ffb020" stroke-width="3"/><circle cx="46" cy="46" r="5" fill="none" stroke="#ffb020" stroke-width="3"/></svg>`,
@@ -564,31 +356,22 @@
 
   const safeKeys = Object.keys(ICONS);
   function randomIcon(){ return ICONS[safeKeys[Math.floor(Math.random()*safeKeys.length)]]; }
-
+  
+  // Lógica Matemática Probabilística
   const WARNING_PROB = Math.cbrt(1/100000); 
   function drawSymbol(){
     if (Math.random() < WARNING_PROB) return 'warning';
     return safeKeys[Math.floor(Math.random()*safeKeys.length)];
   }
-  function iconMarkupFor(key){
-    return key === 'warning' ? WARNING_ICON : ICONS[key];
-  }
+  function iconMarkupFor(key){ return key === 'warning' ? WARNING_ICON : ICONS[key]; }
 
   const btnHitbox = document.getElementById('btn-hitbox');
   const leverCaption = document.getElementById('leverCaption');
   const slots = [document.getElementById('slot1'), document.getElementById('slot2'), document.getElementById('slot3')];
-  const historyList = document.getElementById('historyList');
-  const countTotalEl = document.getElementById('count-total');
-  const countFailsEl = document.getElementById('count-fails');
-  const countRateEl = document.getElementById('count-rate');
   const rig = document.getElementById('rig');
   const beacon = document.getElementById('beacon');
+  let busy = false;
 
-  let totalAttempts = 0, totalFails = 0, firstRun = true, busy = false;
-
-  function pad(n){ return String(n).padStart(3,'0'); }
-
-  /* ---- Interaction ---- */
   function runTest(){
     if (busy) return;
     busy = true;
@@ -611,60 +394,41 @@
     }, 60);
   }
 
-  // Ahora el click se hace sobre el botón invisible que está justo encima de la bola roja
   btnHitbox.addEventListener('click', runTest);
-  btnHitbox.addEventListener('keydown', (e) => { 
-    if(e.key === 'Enter' || e.key === ' '){ 
-      e.preventDefault(); 
-      runTest(); 
-    } 
-  });
 
   function evaluateResult(){
-    if (firstRun){ historyList.innerHTML = ''; firstRun = false; }
-
-    totalAttempts++;
-    countTotalEl.textContent = pad(totalAttempts);
-
     const results = [drawSymbol(), drawSymbol(), drawSymbol()];
     const isFailure = results.every(k => k === 'warning');
 
     if (isFailure){
-      totalFails++;
-      countFailsEl.textContent = pad(totalFails);
       slots.forEach(s => s.innerHTML = FAIL_ICON);
-      triggerAlarm();
+      rig.classList.add('shudder');
+      beacon.classList.add('active');
+      setTimeout(() => { rig.classList.remove('shudder'); beacon.classList.remove('active'); }, 1400);
     } else {
       slots.forEach((s, i) => s.innerHTML = iconMarkupFor(results[i]));
     }
 
-    countRateEl.textContent = ((totalFails/totalAttempts)*100).toFixed(4) + '%';
-    addLogEntry(isFailure);
+    // ¡ENVIAR DATOS A FIREBASE!
+    const timestamp = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const randomId = String(Math.floor(Math.random()*90000)+10000);
+    
+    // 1. Sumar a las estadísticas
+    statsRef.set({
+        total: globalAttempts + 1,
+        fails: globalFails + (isFailure ? 1 : 0)
+    });
+
+    // 2. Añadir al registro en vivo
+    historyRef.push({
+        id: randomId,
+        time: timestamp,
+        failed: isFailure
+    });
 
     busy = false;
     leverCaption.textContent = 'Tirar de la palanca para ensayar';
     leverCaption.classList.remove('disabled');
-  }
-
-  function triggerAlarm(){
-    rig.classList.add('shudder');
-    beacon.classList.add('active');
-    setTimeout(() => {
-      rig.classList.remove('shudder');
-      beacon.classList.remove('active');
-    }, 1400);
-  }
-
-  function addLogEntry(hasFailed){
-    const li = document.createElement('li');
-    li.className = 'ticker-item';
-    const id = String(Math.floor(Math.random()*90000)+10000);
-    const timestamp = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-    const statusHtml = hasFailed
-      ? `<span class="status fail">COLAPSO — falla detectada</span>`
-      : `<span class="status ok">Estable — dentro de tolerancia</span>`;
-    li.innerHTML = `<div class="row1"><span>[${timestamp}]</span><span>ID ${id}</span></div>${statusHtml}`;
-    historyList.prepend(li);
   }
 
   slots.forEach(s => s.innerHTML = randomIcon());
