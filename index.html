@@ -72,7 +72,7 @@
   .panel-label{ font-family:'JetBrains Mono',monospace; font-size:.66rem; letter-spacing:.12em; color:#a7abae; text-align:center; margin-bottom:15px; text-transform:uppercase; }
 
   /* ---- Windows ---- */
-  .window-row{ display:flex; justify-content:center; gap:14px; margin-bottom:40px; }
+  .window-row{ display:flex; justify-content:center; gap:14px; margin-bottom: 70px; } /* Más espacio para bajar la palanca */
   .window{ width:105px;height:120px; background:#050505; border-radius:6px; border:7px solid var(--bezel); box-shadow:inset 0 6px 12px rgba(0,0,0,.9), inset 0 -3px 6px rgba(255,255,255,.04), 0 2px 4px rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
   .window::after{ content:''; position:absolute; inset:0; background:linear-gradient(120deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 68%, rgba(255,255,255,.05) 100%); pointer-events:none; }
   .window svg{ width:50px; height:50px; filter:drop-shadow(0 0 6px rgba(255,176,32,.55)); }
@@ -82,9 +82,14 @@
   .lever-zone{ display:flex; flex-direction:column; align-items:center; margin-bottom:22px; }
   .lever-mount{ width:150px; height:90px; position:relative; }
   .lever-track{ position:absolute; bottom:0; left:50%; width:110px; height:60px; transform:translateX(-50%); border:3px solid #1a1b1c; border-bottom:none; border-radius:70px 70px 0 0; background:linear-gradient(180deg, #232426, #17181a); box-shadow:inset 0 3px 6px rgba(0,0,0,.7); }
-  #lever3d-canvas{ position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); width:150px; height:200px; z-index:10; }
-  .hitbox{ position: absolute; top: -95px; left: 50%; transform: translateX(-50%); width: 90px; height: 90px; border-radius: 50%; background: transparent; z-index: 20; cursor: pointer; border: none; outline: none; -webkit-tap-highlight-color: transparent; }
+  
+  /* Lienzo 3D movido más abajo (bottom: -30px) */
+  #lever3d-canvas{ position:absolute; bottom:-30px; left:50%; transform:translateX(-50%); width:150px; height:200px; z-index:10; }
+  
+  /* Hitbox ajustado para coincidir con la bola más baja */
+  .hitbox{ position: absolute; top: -75px; left: 50%; transform: translateX(-50%); width: 90px; height: 90px; border-radius: 50%; background: transparent; z-index: 20; cursor: pointer; border: none; outline: none; -webkit-tap-highlight-color: transparent; }
   .hitbox:focus-visible{ border: 2px solid var(--amber); }
+  
   .lever-caption{ font-family:'JetBrains Mono',monospace; font-size:.68rem; letter-spacing:.1em; color:#a7abae; margin-top:20px; text-transform:uppercase; }
 
   /* ---- Beacon ---- */
@@ -99,18 +104,21 @@
   .lcd.fail .digits{ color:var(--red-on); text-shadow:0 0 8px rgba(255,59,48,.6); }
   .lcd .cap{ font-family:'JetBrains Mono',monospace; font-size:.58rem; letter-spacing:.1em; color:#767a7d; margin-top:4px; text-transform:uppercase; }
 
-  /* ================= TICKER & CHARTS ================= */
-  .right-panel { flex:1 1 280px; display:flex; flex-direction:column; gap:20px; }
+  /* ================= TICKER & CHARTS (Panel Derecho) ================= */
+  .right-panel { flex:1 1 280px; display:flex; flex-direction:column; gap:20px; max-height: 540px; }
   
-  .ticker{ position:relative; background: repeating-linear-gradient(0deg, rgba(0,0,0,.015) 0 2px, transparent 2px 4px), linear-gradient(180deg, var(--paper), var(--paper-2)); border-radius:4px; padding:22px 26px 20px 40px; box-shadow: 0 30px 45px -18px rgba(0,0,0,.7), 0 2px 0 rgba(255,255,255,.5) inset; display:flex; flex-direction:column; flex:1; min-height: 250px; }
+  /* Altura fija de 380px para que scrollee internamente */
+  .ticker{ position:relative; background: repeating-linear-gradient(0deg, rgba(0,0,0,.015) 0 2px, transparent 2px 4px), linear-gradient(180deg, var(--paper), var(--paper-2)); border-radius:4px; padding:22px 26px 20px 40px; box-shadow: 0 30px 45px -18px rgba(0,0,0,.7), 0 2px 0 rgba(255,255,255,.5) inset; display:flex; flex-direction:column; height: 380px; }
   .ticker::before{ content:''; position:absolute; top:0; bottom:0; left:14px; width:10px; background-image:radial-gradient(circle, var(--room) 3.2px, transparent 3.6px); background-size:10px 22px; background-repeat:repeat-y; opacity:.9; }
   .ticker-head{ display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px dashed var(--ink-soft); padding-bottom:10px; margin-bottom:12px; }
   .ticker-head h3{ font-family:'JetBrains Mono',monospace; font-size:.8rem; letter-spacing:.08em; color:var(--ink); text-transform:uppercase; }
   .ticker-head .live{ font-family:'JetBrains Mono',monospace; font-size:.6rem; color:#3f8a5c; display:flex; align-items:center; gap:5px; }
   .ticker-head .live::before{ content:''; width:6px;height:6px; background:#3f8a5c; border-radius:50%; animation:pulse 2s infinite; }
-  .ticker-list{ list-style:none; overflow-y:auto; flex:1; }
-  .ticker-list::-webkit-scrollbar{ width:5px; }
-  .ticker-list::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:4px; }
+  
+  .ticker-list{ list-style:none; overflow-y:auto; flex:1; padding-right: 10px; }
+  .ticker-list::-webkit-scrollbar{ width:6px; }
+  .ticker-list::-webkit-scrollbar-thumb{ background:rgba(0,0,0,0.3); border-radius:4px; }
+  
   .ticker-item{ font-family:'JetBrains Mono',monospace; font-size:.74rem; color:var(--ink); padding:9px 0; border-bottom:1px dashed #c9c0a4; animation:slideIn .25s ease-out; }
   .ticker-item .row1{ display:flex; justify-content:space-between; color:var(--ink-soft); margin-bottom:3px; }
   .ticker-item .status{ font-weight:600; letter-spacing:.02em; }
@@ -118,8 +126,20 @@
   .ticker-item .status.fail{ color:#b3341f; }
   .empty-log{ font-family:'JetBrains Mono',monospace; font-size:.74rem; color:var(--ink-soft); line-height:1.7; padding-top:6px; }
 
-  /* Chart Container */
-  .chart-container { background: #1a1b1c; border: 1px solid #2a2b2c; border-radius: 6px; padding: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
+  /* Nuevo contenedor de gráfica (Gráfico Izquierda, Textos Derecha) */
+  .chart-container { 
+    background: #1a1b1c; border: 1px solid #2a2b2c; border-radius: 6px; 
+    padding: 15px 25px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); 
+    display: flex; align-items: center; justify-content: space-between; gap: 15px;
+  }
+  .chart-wrapper { width: 100px; height: 100px; position: relative; }
+  .chart-labels { display: flex; flex-direction: column; gap: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #a7abae; width: 100%;}
+  .chart-labels .label-row { display: flex; align-items: center; gap: 8px; }
+  .chart-labels .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .chart-labels .dot.green { background: #2f7d4f; }
+  .chart-labels .dot.red { background: #b3341f; }
+  .chart-labels .val-green { color: #39d97a; font-weight: bold; font-size: 1.2rem; margin-left: auto; }
+  .chart-labels .val-red { color: #ff3b30; font-weight: bold; font-size: 1.2rem; margin-left: auto; }
 
   /* ================= Nameplate ================= */
   .nameplate{ margin-top:22px; width:100%; max-width:1180px; display:grid; grid-template-columns: 2fr 1.5fr 1fr; background:linear-gradient(180deg,#7d8186,#54585c); border-radius:6px; border:1px solid #2a2b2c; box-shadow:0 10px 22px -10px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.25) inset; overflow:hidden; }
@@ -135,6 +155,7 @@
 
   @media (max-width:760px){
     .dashboard{ transform:none; } .stage{ perspective:none; } .window{ width:80px; height:100px; } .window svg{ width:40px; height:40px; } .nameplate{ grid-template-columns:1fr; } 
+    .chart-container { flex-direction: column; }
   }
 </style>
 </head>
@@ -176,7 +197,7 @@
     </section>
 
     <div class="right-panel">
-      <!-- Ticker Panel -->
+      <!-- Ticker Panel (Ahora con barra de scroll interna) -->
       <aside class="ticker">
         <div class="ticker-head"><h3>Registro de Red Global</h3><span class="live">EN VIVO</span></div>
         <ul class="ticker-list" id="historyList">
@@ -184,9 +205,21 @@
         </ul>
       </aside>
       
-      <!-- Chart Panel -->
+      <!-- Chart Panel (Gráfico circular a la izquierda, números a la derecha) -->
       <div class="chart-container">
-        <canvas id="statsChart" width="100" height="60"></canvas>
+        <div class="chart-wrapper">
+          <canvas id="statsChart"></canvas>
+        </div>
+        <div class="chart-labels">
+          <div class="label-row">
+            <span class="dot green"></span> ESTABLES: 
+            <span id="lbl-stable" class="val-green">0</span>
+          </div>
+          <div class="label-row">
+            <span class="dot red"></span> COLAPSOS: 
+            <span id="lbl-fail" class="val-red">0</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -213,15 +246,12 @@
     appId: "1:711176014554:web:991576dfac150b24f0f3e3"
   };
 
-  // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   
-  // Referencias a la base de datos
-  const statsRef = db.ref('stats'); // Guarda los totales
-  const historyRef = db.ref('history'); // Guarda el log en vivo
+  const statsRef = db.ref('stats');
+  const historyRef = db.ref('history');
 
-  // Variables Globales
   let globalAttempts = 0;
   let globalFails = 0;
   
@@ -242,27 +272,33 @@
       },
       options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: {
-              legend: { position: 'bottom', labels: { color: '#a7abae', font: { family: 'JetBrains Mono' } } }
+              legend: { display: false }, // Ocultamos la leyenda original
+              tooltip: { enabled: false }
           },
-          cutout: '70%'
+          cutout: '75%'
       }
   });
 
   /* =========================================================
-     3. LECTURA DE DATOS EN TIEMPO REAL (De la Nube al HTML)
+     3. LECTURA DE DATOS EN TIEMPO REAL
      ========================================================= */
   const countTotalEl = document.getElementById('count-total');
   const countFailsEl = document.getElementById('count-fails');
   const countRateEl = document.getElementById('count-rate');
   const historyList = document.getElementById('historyList');
+  
+  const lblStable = document.getElementById('lbl-stable');
+  const lblFail = document.getElementById('lbl-fail');
 
-  // Escuchar estadísticas globales
   statsRef.on('value', (snapshot) => {
       const data = snapshot.val() || { total: 0, fails: 0 };
       globalAttempts = data.total;
       globalFails = data.fails;
+      const stableCount = globalAttempts - globalFails;
       
+      // Actualizar contadores del panel 
       countTotalEl.textContent = String(globalAttempts).padStart(3,'0');
       countFailsEl.textContent = String(globalFails).padStart(3,'0');
       
@@ -270,16 +306,18 @@
           countRateEl.textContent = ((globalFails / globalAttempts) * 100).toFixed(4) + '%';
       }
       
-      // Actualizar Gráfica
-      statsChart.data.datasets[0].data = [globalAttempts - globalFails, globalFails];
+      // Actualizar valores numéricos junto a la gráfica
+      lblStable.textContent = stableCount;
+      lblFail.textContent = globalFails;
+
+      // Animación de la gráfica de dona
+      statsChart.data.datasets[0].data = [stableCount, globalFails];
       statsChart.update();
   });
 
-  // Escuchar historial en vivo
   historyRef.limitToLast(15).on('child_added', (snapshot) => {
       const record = snapshot.val();
       
-      // Quitar mensaje de "Conectando..." la primera vez
       const emptyLog = document.querySelector('.empty-log');
       if(emptyLog) emptyLog.remove();
 
@@ -357,7 +395,6 @@
   const safeKeys = Object.keys(ICONS);
   function randomIcon(){ return ICONS[safeKeys[Math.floor(Math.random()*safeKeys.length)]]; }
   
-  // Lógica Matemática Probabilística
   const WARNING_PROB = Math.cbrt(1/100000); 
   function drawSymbol(){
     if (Math.random() < WARNING_PROB) return 'warning';
@@ -409,17 +446,14 @@
       slots.forEach((s, i) => s.innerHTML = iconMarkupFor(results[i]));
     }
 
-    // ¡ENVIAR DATOS A FIREBASE!
     const timestamp = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
     const randomId = String(Math.floor(Math.random()*90000)+10000);
     
-    // 1. Sumar a las estadísticas
     statsRef.set({
         total: globalAttempts + 1,
         fails: globalFails + (isFailure ? 1 : 0)
     });
 
-    // 2. Añadir al registro en vivo
     historyRef.push({
         id: randomId,
         time: timestamp,
