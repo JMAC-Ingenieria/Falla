@@ -1,436 +1,748 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análisis de Confiabilidad Estructural</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --panel-bg: rgba(30, 41, 59, 0.75);
-            --accent-blue: #3b82f6;
-            --accent-red: #ef4444;
-            --accent-green: #10b981;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ensayo de Falla Estructural — Simulador ELU Híbrido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Importar Three.js para la palanca 3D -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --room:#141414;
+    --metal-1:#2f3134;
+    --metal-2:#4a4d50;
+    --metal-3:#63666a;
+    --metal-hi:#a9adb0;
+    --bezel:#0c0d0e;
+    --amber:#ffb020;
+    --amber-dim:#5c3d10;
+    --red-on:#ff3b30;
+    --red-off:#3d1712;
+    --green:#39d97a;
+    --green-dim:#123b23;
+    --paper:#efe9da;
+    --paper-2:#e3dcc8;
+    --ink:#2c2a24;
+    --ink-soft:#726b57;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Oswald',sans-serif;
+    background:
+      radial-gradient(ellipse at 50% -10%, #24262a 0%, var(--room) 55%);
+    color:var(--metal-hi);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:34px 18px 50px;
+  }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
+  .stage{
+    perspective:2200px;
+    width:100%;
+    max-width:1180px;
+  }
 
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background-color: var(--bg-color);
-            /* Fondo de cuadrícula estilo plano de ingeniería */
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
-            color: var(--text-main);
-            overflow: hidden;
-            transition: background-color 0.2s ease;
-        }
+  header.topbar{
+    text-align:center;
+    margin-bottom:26px;
+  }
+  header.topbar .mark{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.68rem;
+    letter-spacing:.16em;
+    color:var(--metal-3);
+  }
+  header.topbar h1{
+    font-size:1.9rem;
+    font-weight:600;
+    letter-spacing:.02em;
+    color:var(--metal-hi);
+    text-transform:uppercase;
+    margin-top:6px;
+    text-shadow:0 1px 0 rgba(255,255,255,.06), 0 2px 3px rgba(0,0,0,.6);
+  }
+  header.topbar .subtitle{
+    font-family:'JetBrains Mono',monospace;
+    color:#8a8d90;
+    font-size:.78rem;
+    margin-top:8px;
+  }
 
-        /* Contenedor Principal */
-        .dashboard {
-            display: flex;
-            flex: 1;
-            padding: 20px;
-            gap: 20px;
-            height: calc(100vh - 50px);
-        }
+  .dashboard{
+    display:flex;
+    gap:24px;
+    transform: rotateX(4deg);
+    transform-style:preserve-3d;
+    align-items:stretch;
+    flex-wrap:wrap;
+  }
 
-        /* Paneles con efecto Vidrio (Glassmorphism) */
-        .glass-panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
+  /* ================= RIG (metal cabinet) ================= */
+  .rig{
+    flex:2 1 620px;
+    position:relative;
+    background:
+      repeating-linear-gradient(105deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 3px),
+      linear-gradient(165deg, var(--metal-3) 0%, var(--metal-1) 65%);
+    border-radius:10px;
+    padding:26px 30px 22px;
+    box-shadow:
+      0 30px 45px -18px rgba(0,0,0,.75),
+      0 2px 0 rgba(255,255,255,.08) inset,
+      0 -6px 14px rgba(0,0,0,.5) inset;
+    border:1px solid #1c1d1f;
+    transition:transform .25s ease;
+  }
+  .rig.shudder{ animation:shudder .4s ease-in-out 2; }
 
-        /* Sección Izquierda: Simulador */
-        .simulator-section {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-        }
+  .rivet{
+    position:absolute;
+    width:11px;height:11px;
+    border-radius:50%;
+    background:radial-gradient(circle at 32% 30%, #d7dbde, #7d8186 55%, #35373a 100%);
+    box-shadow:0 1px 2px rgba(0,0,0,.6);
+  }
+  .rivet.tl{top:12px;left:12px;} .rivet.tr{top:12px;right:12px;}
+  .rivet.bl{bottom:12px;left:12px;} .rivet.br{bottom:12px;right:12px;}
 
-        .title-container {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+  .hazard-strip{
+    height:9px;
+    border-radius:5px;
+    margin-bottom:20px;
+    background:repeating-linear-gradient(135deg, #f0b90b 0 12px, #1a1a1a 12px 24px);
+    box-shadow:0 1px 3px rgba(0,0,0,.6) inset;
+  }
 
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(to right, #60a5fa, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+  .panel-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.66rem;
+    letter-spacing:.12em;
+    color:#a7abae;
+    text-align:center;
+    margin-bottom:10px;
+    text-transform:uppercase;
+  }
 
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            margin-top: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
+  /* ---- Indicator glass windows ---- */
+  .window-row{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:22px;
+  }
+  .window{
+    width:96px;height:110px;
+    background:#050505;
+    border-radius:6px;
+    border:7px solid var(--bezel);
+    box-shadow:
+      inset 0 6px 12px rgba(0,0,0,.9),
+      inset 0 -3px 6px rgba(255,255,255,.04),
+      0 2px 4px rgba(0,0,0,.5);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .window::after{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(120deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 68%, rgba(255,255,255,.05) 100%);
+    pointer-events:none;
+  }
+  .window svg{ width:46px; height:46px; filter:drop-shadow(0 0 6px rgba(255,176,32,.55)); }
+  .window.spin svg{ opacity:.55; filter:blur(2px); }
 
-        /* Máquina Tragamonedas Mejorada */
-        .slot-machine {
-            display: flex;
-            gap: 25px;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-            margin-bottom: 40px;
-        }
+  /* ---- Load gauge ---- */
+  .gauge-wrap{
+    display:flex;
+    justify-content:center;
+    margin-bottom:6px;
+  }
+  .gauge{ width:220px; }
+  .gauge .rim{ fill:none; stroke:#17181a; stroke-width:10; }
+  .gauge .face{ fill:#111214; }
+  .gauge .tick{ stroke:#6a6e72; stroke-width:2; }
+  .gauge .tick.major{ stroke:#9a9ea1; stroke-width:2.6; }
+  .gauge .needle{ stroke:#ff5b4a; stroke-width:3.2; stroke-linecap:round; transform-origin:100px 100px; }
+  .gauge .needle.settle{ transition:transform .65s cubic-bezier(.34,1.4,.4,1); }
+  .gauge .hub{ fill:#cfd3d6; stroke:#7a7d80; stroke-width:1.5; }
+  .gauge-caption{
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:.64rem;
+    letter-spacing:.1em;
+    color:#8a8d90;
+    margin-top:-6px;
+    margin-bottom:22px;
+    text-transform:uppercase;
+  }
 
-        .slot {
-            width: 130px;
-            height: 160px;
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 5rem;
-            border: 2px solid #334155;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            transition: filter 0.1s;
-        }
+  /* ---- Lever ---- */
+  .lever-zone{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    margin-bottom:22px;
+  }
+  .lever-mount{
+    width:150px; height:78px;
+    position:relative;
+  }
+  .lever-track{
+    position:absolute;
+    bottom:0; left:50%;
+    width:110px; height:60px;
+    transform:translateX(-50%);
+    border:3px solid #1a1b1c;
+    border-bottom:none;
+    border-radius:70px 70px 0 0;
+    background:linear-gradient(180deg, #232426, #17181a);
+    box-shadow:inset 0 3px 6px rgba(0,0,0,.7);
+  }
+  /* Canvas 3D que reemplaza al brazo CSS */
+  #lever3d-canvas{
+    position:absolute;
+    bottom:-10px; left:50%;
+    transform:translateX(-50%);
+    width:150px; height:200px;
+    z-index:10;
+    cursor:pointer;
+    outline:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #lever3d-canvas:focus-visible{
+    outline: 2px solid var(--amber);
+    border-radius: 10px;
+  }
+  .lever-caption{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.68rem;
+    letter-spacing:.1em;
+    color:#a7abae;
+    margin-top:14px;
+    text-transform:uppercase;
+  }
+  .lever-caption.disabled{ color:#5c5f61; }
 
-        .spinning {
-            filter: blur(4px);
-        }
+  /* ---- Beacon ---- */
+  .beacon{
+    position:absolute;
+    top:-15px; right:26px;
+    width:26px; height:22px;
+    border-radius:50% 50% 4px 4px / 60% 60% 4px 4px;
+    background:radial-gradient(circle at 35% 30%, #7a2a24, #3d1712 70%);
+    box-shadow:0 2px 4px rgba(0,0,0,.6);
+  }
+  .beacon.active{
+    animation:beaconFlash 1.4s ease-in-out;
+  }
 
-        /* Botón de Alta Tecnología */
-        .btn-simulate {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-            padding: 18px 50px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
-            transition: all 0.2s ease;
-        }
+  /* ---- LCD readouts ---- */
+  .lcd-row{
+    display:flex;
+    justify-content:center;
+    gap:1px;
+    background:#1a1b1c;
+    border-radius:6px;
+    overflow:hidden;
+    border:1px solid #0c0d0e;
+  }
+  .lcd{
+    flex:1;
+    background:linear-gradient(180deg,#0b0c0d,#050506);
+    padding:12px 8px 10px;
+    text-align:center;
+    position:relative;
+  }
+  .lcd::after{
+    content:'';
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+  .lcd .digits{
+    font-family:'JetBrains Mono',monospace;
+    font-size:1.5rem;
+    font-weight:600;
+    letter-spacing:.05em;
+    color:var(--amber);
+    text-shadow:0 0 8px rgba(255,176,32,.55);
+  }
+  .lcd.fail .digits{ color:var(--red-on); text-shadow:0 0 8px rgba(255,59,48,.6); }
+  .lcd .cap{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.58rem;
+    letter-spacing:.1em;
+    color:#767a7d;
+    margin-top:4px;
+    text-transform:uppercase;
+  }
 
-        .btn-simulate:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 30px rgba(37, 99, 235, 0.6);
-        }
+  /* ================= TICKER (paper log) ================= */
+  .ticker{
+    flex:1 1 280px;
+    position:relative;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.015) 0 2px, transparent 2px 4px),
+      linear-gradient(180deg, var(--paper), var(--paper-2));
+    border-radius:4px;
+    padding:22px 26px 20px 40px;
+    box-shadow:
+      0 30px 45px -18px rgba(0,0,0,.7),
+      0 2px 0 rgba(255,255,255,.5) inset;
+    display:flex;
+    flex-direction:column;
+    min-height:420px;
+    max-height:560px;
+  }
+  .ticker::before{
+    content:'';
+    position:absolute;
+    top:0; bottom:0; left:14px;
+    width:10px;
+    background-image:radial-gradient(circle, var(--room) 3.2px, transparent 3.6px);
+    background-size:10px 22px;
+    background-repeat:repeat-y;
+    opacity:.9;
+  }
+  .ticker-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px dashed var(--ink-soft);
+    padding-bottom:10px;
+    margin-bottom:12px;
+  }
+  .ticker-head h3{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.8rem;
+    letter-spacing:.08em;
+    color:var(--ink);
+    text-transform:uppercase;
+  }
+  .ticker-head .live{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.6rem;
+    color:#3f8a5c;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .ticker-head .live::before{
+    content:'';
+    width:6px;height:6px;
+    background:#3f8a5c;
+    border-radius:50%;
+    animation:pulse 2s infinite;
+  }
+  .ticker-list{
+    list-style:none;
+    overflow-y:auto;
+    flex:1;
+  }
+  .ticker-list::-webkit-scrollbar{ width:5px; }
+  .ticker-list::-webkit-scrollbar-thumb{ background:var(--ink-soft); border-radius:4px; }
+  .ticker-item{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.74rem;
+    color:var(--ink);
+    padding:9px 0;
+    border-bottom:1px dashed #c9c0a4;
+    animation:slideIn .25s ease-out;
+  }
+  .ticker-item .row1{
+    display:flex; justify-content:space-between;
+    color:var(--ink-soft);
+    margin-bottom:3px;
+  }
+  .ticker-item .status{ font-weight:600; letter-spacing:.02em; }
+  .ticker-item .status.ok{ color:#2f7d4f; }
+  .ticker-item .status.fail{ color:#b3341f; }
+  .empty-log{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.74rem;
+    color:var(--ink-soft);
+    line-height:1.7;
+    padding-top:6px;
+  }
 
-        .btn-simulate:active {
-            transform: translateY(2px);
-        }
+  /* ================= Nameplate ================= */
+  .nameplate{
+    margin-top:22px;
+    width:100%;
+    max-width:1180px;
+    display:grid;
+    grid-template-columns:2fr 1.4fr 1fr 1fr;
+    background:linear-gradient(180deg,#7d8186,#54585c);
+    border-radius:6px;
+    border:1px solid #2a2b2c;
+    box-shadow:0 10px 22px -10px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.25) inset;
+    overflow:hidden;
+  }
+  .nameplate div{
+    padding:11px 18px;
+    border-right:1px solid rgba(0,0,0,.2);
+  }
+  .nameplate div:last-child{ border-right:none; }
+  .nameplate .k{
+    font-family:'JetBrains Mono',monospace;
+    font-size:.56rem;
+    letter-spacing:.1em;
+    color:#2b2c2d;
+    opacity:.75;
+  }
+  .nameplate .v{
+    font-family:'Oswald',sans-serif;
+    font-size:.86rem;
+    font-weight:500;
+    color:#1c1d1e;
+    text-shadow:0 1px 0 rgba(255,255,255,.35);
+    margin-top:2px;
+  }
 
-        .btn-simulate:disabled {
-            background: #475569;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-        }
+  /* ================= animations ================= */
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(63,138,92,.6);}
+    70%{box-shadow:0 0 0 7px rgba(63,138,92,0);}
+    100%{box-shadow:0 0 0 0 rgba(63,138,92,0);}
+  }
+  @keyframes slideIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes shudder{
+    0%,100%{ transform:translate(0,0) rotateX(4deg); }
+    20%{ transform:translate(-2px,1px) rotateX(4deg); }
+    40%{ transform:translate(2px,-1px) rotateX(4deg); }
+    60%{ transform:translate(-1px,2px) rotateX(4deg); }
+    80%{ transform:translate(1px,-2px) rotateX(4deg); }
+  }
+  @keyframes beaconFlash{
+    0%,100%{ background:radial-gradient(circle at 35% 30%, #7a2a24, #3d1712 70%); box-shadow:0 2px 4px rgba(0,0,0,.6); }
+    15%,45%,75%{ background:radial-gradient(circle at 35% 30%, #ff8a76, #ff3b30 70%); box-shadow:0 0 18px 6px rgba(255,59,48,.75), 0 2px 4px rgba(0,0,0,.6); }
+  }
 
-        /* Estadísticas en vivo */
-        .live-stats {
-            margin-top: 30px;
-            display: flex;
-            gap: 30px;
-            text-align: center;
-        }
-
-        .stat-box {
-            background: rgba(0,0,0,0.2);
-            padding: 15px 25px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--accent-blue);
-        }
-
-        .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        /* Sección Derecha: Registro (Log) */
-        .log-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 25px;
-        }
-
-        .log-section h3 {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .log-section h3::before {
-            content: '';
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: var(--accent-green);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--accent-green);
-            animation: pulse 2s infinite;
-        }
-
-        .log-list {
-            list-style: none;
-            overflow-y: auto;
-            flex-grow: 1;
-            padding-right: 10px;
-        }
-
-        /* Estilo de la barra de desplazamiento (Scrollbar) */
-        .log-list::-webkit-scrollbar { width: 8px; }
-        .log-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
-        .log-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-
-        .log-item {
-            background: rgba(0,0,0,0.2);
-            margin-bottom: 10px;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-            border-left: 4px solid var(--accent-green);
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .log-item.fail {
-            border-left-color: var(--accent-red);
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        .log-time { color: var(--text-muted); font-family: monospace; }
-        .log-status { font-weight: bold; color: var(--accent-green); }
-        .log-status.fail { color: var(--accent-red); }
-
-        /* Pie de página académico */
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: #0b1120;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            z-index: 10;
-        }
-
-        .highlight-name {
-            color: var(--text-main);
-            font-weight: bold;
-        }
-
-        /* Animaciones */
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        /* Animación de Terremoto (Falla Estructural) */
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-
-        .earthquake {
-            animation: shake 0.5s;
-            animation-iteration-count: 3;
-            background-color: #450a0a !important; /* Fondo rojo oscuro de alerta */
-        }
-
-        /* Responsive para celular */
-        @media (max-width: 768px) {
-            .dashboard { flex-direction: column; height: auto; }
-            .slot { width: 80px; height: 100px; font-size: 3rem; }
-            .slot-machine { gap: 10px; padding: 15px; }
-            .live-stats { flex-direction: column; gap: 10px; }
-        }
-    </style>
+  @media (max-width:760px){
+    .dashboard{ transform:none; }
+    .stage{ perspective:none; }
+    .window{ width:74px; height:88px; }
+    .window svg{ width:34px; height:34px; }
+    .gauge{ width:170px; }
+    .nameplate{ grid-template-columns:1fr 1fr; }
+  }
+</style>
 </head>
 <body>
 
-    <div class="dashboard">
-        <!-- Panel Izquierdo: Simulador -->
-        <main class="simulator-section glass-panel">
-            <div class="title-container">
-                <h1>Confiabilidad Estructural</h1>
-                <p class="subtitle">Simulación de Estado Límite Último (1:100,000)</p>
-            </div>
+<div class="stage">
+  <header class="topbar">
+    <div class="mark">ENSAYO N.º ELU-100K · UNIDAD DE PRUEBAS ESTRUCTURALES</div>
+    <h1>Ensayo de Falla Estructural</h1>
+    <div class="subtitle">Simulación de Estado Límite Último — probabilidad de colapso 1:100.000</div>
+  </header>
 
-            <div class="slot-machine" id="machine">
-                <div class="slot" id="slot1">🌉</div>
-                <div class="slot" id="slot2">🌉</div>
-                <div class="slot" id="slot3">🌉</div>
-            </div>
+  <div class="dashboard">
+    <section class="rig" id="rig">
+      <div class="rivet tl"></div><div class="rivet tr"></div>
+      <div class="rivet bl"></div><div class="rivet br"></div>
+      <div class="beacon" id="beacon"></div>
 
-            <button class="btn-simulate" id="leverBtn">Iniciar Simulación</button>
-            
-            <div class="live-stats">
-                <div class="stat-box">
-                    <div class="stat-value" id="count-total">0</div>
-                    <div class="stat-label">Ensayos Realizados</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-value" id="count-fails" style="color: var(--accent-red);">0</div>
-                    <div class="stat-label">Fallos Detectados</div>
-                </div>
-            </div>
-        </main>
+      <div class="hazard-strip"></div>
+      <div class="panel-label">Indicadores de carga — muestreo por elemento</div>
 
-        <!-- Panel Derecho: Log en Vivo -->
-        <aside class="log-section glass-panel">
-            <h3>Monitoreo en Tiempo Real</h3>
-            <ul class="log-list" id="historyList">
-                <!-- Registros inyectados por JS -->
-            </ul>
-        </aside>
-    </div>
+      <div class="window-row" id="machine">
+        <div class="window" id="slot1"></div>
+        <div class="window" id="slot2"></div>
+        <div class="window" id="slot3"></div>
+      </div>
 
-    <footer>
-        Proyecto Académico | Docente: <span class="highlight-name">Ing. Carlos Achaval</span> | Universidad
-    </footer>
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 200 130" id="gaugeSvg">
+          <path class="rim" d=""></path>
+          <path id="zoneGreen" fill="none" stroke="#2f7d4f" stroke-width="10"></path>
+          <path id="zoneAmber" fill="none" stroke="#c98a1f" stroke-width="10"></path>
+          <path id="zoneRed" fill="none" stroke="#a8362a" stroke-width="10"></path>
+          <g id="ticks"></g>
+          <line class="needle settle" id="needle" x1="100" y1="100" x2="100" y2="34"></line>
+          <circle class="hub" cx="100" cy="100" r="7"></circle>
+        </svg>
+      </div>
+      <div class="gauge-caption">Carga aplicada — escala relativa</div>
 
-    <script>
-        const btn = document.getElementById('leverBtn');
-        const slots = [document.getElementById('slot1'), document.getElementById('slot2'), document.getElementById('slot3')];
-        const historyList = document.getElementById('historyList');
-        const countTotalEl = document.getElementById('count-total');
-        const countFailsEl = document.getElementById('count-fails');
+      <div class="lever-zone">
+        <div class="lever-mount">
+          <div class="lever-track"></div>
+          <!-- Reemplazo del brazo de CSS por el Canvas de Three.js -->
+          <canvas id="lever3d-canvas" tabindex="0" role="button" aria-label="Iniciar ensayo"></canvas>
+        </div>
+        <div class="lever-caption" id="leverCaption">Tirar de la palanca para ensayar</div>
+      </div>
 
-        // Iconos de ingeniería: Puente, Camión de Carga, Viga, Grúa, Acero
-        const safeSymbols = ['🌉', '🚛', '🏗️', '📐', '⚙️'];
-        const failSymbol = '💥';
+      <div class="lcd-row">
+        <div class="lcd">
+          <div class="digits" id="count-total">000</div>
+          <div class="cap">Ensayos</div>
+        </div>
+        <div class="lcd fail">
+          <div class="digits" id="count-fails">000</div>
+          <div class="cap">Fallos</div>
+        </div>
+        <div class="lcd">
+          <div class="digits" id="count-rate" style="font-size:1.05rem;">0.0000%</div>
+          <div class="cap">Tasa</div>
+        </div>
+      </div>
+    </section>
 
-        let totalAttempts = 0;
-        let totalFails = 0;
+    <aside class="ticker">
+      <div class="ticker-head">
+        <h3>Registro impreso</h3>
+        <span class="live">EN VIVO</span>
+      </div>
+      <ul class="ticker-list" id="historyList">
+        <li class="empty-log">Sin ensayos registrados todavía.<br>Tire de la palanca para comenzar el muestreo.</li>
+      </ul>
+    </aside>
+  </div>
 
-        btn.addEventListener('click', () => {
-            btn.disabled = true;
-            btn.innerText = "Calculando Cargas...";
-            
-            // Añadir clase de desenfoque para dar ilusión de velocidad
-            slots.forEach(slot => slot.classList.add('spinning'));
-            
-            let spins = 0;
-            const spinInterval = setInterval(() => {
-                slots.forEach(slot => {
-                    slot.innerText = safeSymbols[Math.floor(Math.random() * safeSymbols.length)];
-                });
-                spins++;
+  <div class="nameplate">
+    <div><div class="k">PROYECTO</div><div class="v">Confiabilidad Estructural</div></div>
+    <div><div class="k">DOCENTE</div><div class="v">Ing. Carlos Achaval</div></div>
+    <div><div class="k">ESCALA</div><div class="v">1 : 100.000</div></div>
+    <div><div class="k">REV.</div><div class="v">Híbrida</div></div>
+  </div>
+</div>
 
-                if (spins > 15) { // Tiempo de giro
-                    clearInterval(spinInterval);
-                    slots.forEach(slot => slot.classList.remove('spinning'));
-                    evaluateResult();
-                }
-            }, 60); // Velocidad del giro
-        });
+<script>
+  /* =========================================================
+     CONFIGURACIÓN DE LA PALANCA 3D AISLADA (Three.js)
+     ========================================================= */
+  const lCanvas = document.getElementById('lever3d-canvas');
+  let pull3DLever = () => {}; // Función que conectará el 3D con la lógica
 
-        function evaluateResult() {
-            totalAttempts++;
-            countTotalEl.innerText = totalAttempts;
+  if (window.WebGLRenderingContext) {
+    const lRenderer = new THREE.WebGLRenderer({ canvas: lCanvas, alpha: true, antialias: true });
+    lRenderer.setSize(150, 200);
+    lRenderer.setPixelRatio(window.devicePixelRatio || 1);
 
-            // Lógica Matemática: 1 en 100,000
-            const randomChance = Math.floor(Math.random() * 100000) + 1;
-            const isFailure = randomChance === 1;
+    const lScene = new THREE.Scene();
+    
+    // Cámara ajustada para ver perfectamente la palanca dentro del espacio
+    const lCamera = new THREE.PerspectiveCamera(45, 150/200, 0.1, 10);
+    lCamera.position.set(0, 1.3, 4); 
+    lCamera.lookAt(0, 0.6, 0);
 
-            if (isFailure) {
-                totalFails++;
-                countFailsEl.innerText = totalFails;
-                slots.forEach(slot => slot.innerText = failSymbol);
-                triggerEarthquake();
-                addHistoryLog(true);
-            } else {
-                // Asegurar combinación segura aleatoria
-                slots.forEach(slot => {
-                    slot.innerText = safeSymbols[Math.floor(Math.random() * safeSymbols.length)];
-                });
-                addHistoryLog(false);
-            }
+    // Luces
+    lScene.add(new THREE.AmbientLight(0x9099a3, 0.6));
+    const lDirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    lDirLight.position.set(2, 5, 4);
+    lScene.add(lDirLight);
 
-            btn.disabled = false;
-            btn.innerText = "Iniciar Simulación";
-        }
+    const leverPivot = new THREE.Group();
+    leverPivot.position.set(0, 0.1, 0); // Eje de rotación sobre la pista visual
+    lScene.add(leverPivot);
 
-        function triggerEarthquake() {
-            // Efecto visual potente cuando hay falla
-            document.body.classList.add('earthquake');
-            setTimeout(() => {
-                document.body.classList.remove('earthquake');
-            }, 1500);
-        }
+    const rodMat = new THREE.MeshStandardMaterial({ color:0xcfd3d6, metalness:0.85, roughness:0.25 });
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.4, 16), rodMat);
+    rod.position.y = 0.7; // Levantar el tubo para que la base quede en el pivote
+    leverPivot.add(rod);
 
-        function addHistoryLog(hasFailed) {
-            const li = document.createElement('li');
-            li.className = `log-item ${hasFailed ? 'fail' : ''}`;
-            
-            const randomUserId = Math.floor(Math.random() * 90000) + 10000;
-            const timestamp = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second:'2-digit', fractionalSecondDigits: 2 });
+    const ballMat = new THREE.MeshStandardMaterial({ color:0xc0392b, metalness:0.35, roughness:0.3 });
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20), ballMat);
+    ball.position.y = 1.45; // Bola en la punta del tubo
+    leverPivot.add(ball);
 
-            const statusHtml = hasFailed 
-                ? `<span class="log-status fail">COLAPSO CRÍTICO</span>` 
-                : `<span class="log-status">ESTRUCTURA ESTABLE</span>`;
+    const REST_X = -0.45; // Posición de reposo
+    const PULL_X = 0.8;   // Posición jalada
+    leverPivot.rotation.x = REST_X;
 
-            li.innerHTML = `
-                <div>
-                    <span class="log-time">[${timestamp}]</span> 
-                    ID_Sim_${randomUserId}
-                </div>
-                ${statusHtml}
-            `;
+    function render3D() {
+      requestAnimationFrame(render3D);
+      lRenderer.render(lScene, lCamera);
+    }
+    render3D();
 
-            historyList.prepend(li);
-        }
-    </script>
+    function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+    function tweenValue(from,to,duration,onUpdate,onComplete){
+      const start = performance.now();
+      function frame(now){
+        const t = Math.min(1,(now-start)/duration);
+        onUpdate(from + (to-from)*easeInOutCubic(t));
+        if (t<1) requestAnimationFrame(frame); else if(onComplete) onComplete();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    pull3DLever = function() {
+      tweenValue(REST_X, PULL_X, 260, v => leverPivot.rotation.x = v, () => {
+        tweenValue(PULL_X, REST_X, 380, v => leverPivot.rotation.x = v);
+      });
+    }
+  }
+
+  /* =========================================================
+     LÓGICA DEL SIMULADOR 2D ORIGINAL
+     ========================================================= */
+  const ICONS = {
+    bridge: `<svg viewBox="0 0 64 64"><path d="M6 40 Q32 12 58 40" fill="none" stroke="#ffb020" stroke-width="3" stroke-linecap="round"/><path d="M6 40h52" stroke="#ffb020" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 40v9M24 40v9M32 40v9M40 40v9M50 40v9" stroke="#ffb020" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+    truck: `<svg viewBox="0 0 64 64"><rect x="6" y="24" width="30" height="18" rx="1" fill="none" stroke="#ffb020" stroke-width="3"/><path d="M36 30h12l8 8v4H36z" fill="none" stroke="#ffb020" stroke-width="3" stroke-linejoin="round"/><circle cx="18" cy="46" r="5" fill="none" stroke="#ffb020" stroke-width="3"/><circle cx="46" cy="46" r="5" fill="none" stroke="#ffb020" stroke-width="3"/></svg>`,
+    beam: `<svg viewBox="0 0 64 64"><path d="M14 12h36M14 52h36M28 12v40M36 12v40" fill="none" stroke="#ffb020" stroke-width="3" stroke-linecap="round"/></svg>`,
+    crane: `<svg viewBox="0 0 64 64"><path d="M12 56V16l32 8" fill="none" stroke="#ffb020" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 24v6l-4 12" fill="none" stroke="#ffb020" stroke-width="3" stroke-linecap="round"/><rect x="6" y="52" width="14" height="6" fill="#ffb020"/></svg>`,
+    gear: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="10" fill="none" stroke="#ffb020" stroke-width="3"/><path d="M32 8v8M32 48v8M8 32h8M48 32h8M15 15l6 6M43 43l6 6M49 15l-6 6M21 43l-6 6" stroke="#ffb020" stroke-width="3" stroke-linecap="round"/></svg>`
+  };
+  const WARNING_ICON = `<svg viewBox="0 0 64 64"><path d="M32 8 5 54h54z" fill="none" stroke="#ffb020" stroke-width="3.2" stroke-linejoin="round"/><path d="M32 26v14" stroke="#ffb020" stroke-width="3.2" stroke-linecap="round"/><circle cx="32" cy="46" r="1.9" fill="#ffb020"/></svg>`;
+  const FAIL_ICON = `<svg viewBox="0 0 64 64"><path d="M32 6 4 56h56z" fill="none" stroke="#ff3b30" stroke-width="3.2" stroke-linejoin="round"/><path d="M32 24v14" stroke="#ff3b30" stroke-width="3.2" stroke-linecap="round"/><circle cx="32" cy="46" r="1.8" fill="#ff3b30"/></svg>`;
+
+  const safeKeys = Object.keys(ICONS);
+  function randomIcon(){ return ICONS[safeKeys[Math.floor(Math.random()*safeKeys.length)]]; }
+
+  const WARNING_PROB = Math.cbrt(1/100000); 
+  function drawSymbol(){
+    if (Math.random() < WARNING_PROB) return 'warning';
+    return safeKeys[Math.floor(Math.random()*safeKeys.length)];
+  }
+  function iconMarkupFor(key){
+    return key === 'warning' ? WARNING_ICON : ICONS[key];
+  }
+
+  const leverCaption = document.getElementById('leverCaption');
+  const slots = [document.getElementById('slot1'), document.getElementById('slot2'), document.getElementById('slot3')];
+  const historyList = document.getElementById('historyList');
+  const countTotalEl = document.getElementById('count-total');
+  const countFailsEl = document.getElementById('count-fails');
+  const countRateEl = document.getElementById('count-rate');
+  const rig = document.getElementById('rig');
+  const beacon = document.getElementById('beacon');
+  const needle = document.getElementById('needle');
+
+  let totalAttempts = 0, totalFails = 0, firstRun = true, busy = false;
+
+  function pad(n){ return String(n).padStart(3,'0'); }
+
+  /* ---- Build gauge geometry ---- */
+  function polar(cx,cy,r,angleDeg){
+    const a = (angleDeg-90) * Math.PI/180;
+    return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+  }
+  function arcPath(cx,cy,r,startAngle,endAngle){
+    const start = polar(cx,cy,r,endAngle);
+    const end = polar(cx,cy,r,startAngle);
+    const large = (endAngle-startAngle) <= 180 ? "0":"1";
+    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+  }
+  const CX=100, CY=100, R=68;
+  const MIN_A=-115, MAX_A=115;
+  document.querySelector('.rim').setAttribute('d', arcPath(CX,CY,R,MIN_A,MAX_A));
+  document.getElementById('zoneGreen').setAttribute('d', arcPath(CX,CY,R,MIN_A,35));
+  document.getElementById('zoneAmber').setAttribute('d', arcPath(CX,CY,R,35,90));
+  document.getElementById('zoneRed').setAttribute('d', arcPath(CX,CY,R,90,MAX_A));
+
+  const ticksGroup = document.getElementById('ticks');
+  for(let a=MIN_A; a<=MAX_A; a+=(MAX_A-MIN_A)/12){
+    const p1 = polar(CX,CY,R-10,a);
+    const p2 = polar(CX,CY,R-2,a);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y);
+    line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
+    line.setAttribute('class','tick');
+    ticksGroup.appendChild(line);
+  }
+
+  function setNeedle(angle){
+    needle.setAttribute('transform', `rotate(${angle} ${CX} ${CY})`);
+  }
+  setNeedle(MIN_A + 18);
+
+  /* ---- Interaction ---- */
+  function runTest(){
+    if (busy) return;
+    busy = true;
+    
+    pull3DLever(); // Disparar la animación 3D de la palanca
+
+    leverCaption.textContent = 'Ensayando…';
+    leverCaption.classList.add('disabled');
+    slots.forEach(s => s.classList.add('spin'));
+    needle.classList.remove('settle');
+
+    let ticks = 0;
+    const jitter = setInterval(() => {
+      slots.forEach(s => s.innerHTML = randomIcon());
+      setNeedle(MIN_A + Math.random()*(MAX_A-MIN_A));
+      ticks++;
+      if (ticks > 14){
+        clearInterval(jitter);
+        slots.forEach(s => s.classList.remove('spin'));
+        evaluateResult();
+      }
+    }, 60);
+  }
+
+  // Event Listeners conectados al Canvas de Three.js
+  lCanvas.addEventListener('click', runTest);
+  lCanvas.addEventListener('keydown', (e) => { 
+    if(e.key === 'Enter' || e.key === ' '){ 
+      e.preventDefault(); 
+      runTest(); 
+    } 
+  });
+
+  function evaluateResult(){
+    if (firstRun){ historyList.innerHTML = ''; firstRun = false; }
+
+    totalAttempts++;
+    countTotalEl.textContent = pad(totalAttempts);
+
+    const results = [drawSymbol(), drawSymbol(), drawSymbol()];
+    const isFailure = results.every(k => k === 'warning');
+
+    needle.classList.add('settle');
+    if (isFailure){
+      totalFails++;
+      countFailsEl.textContent = pad(totalFails);
+      slots.forEach(s => s.innerHTML = FAIL_ICON);
+      setNeedle(MAX_A - 6);
+      triggerAlarm();
+    } else {
+      slots.forEach((s, i) => s.innerHTML = iconMarkupFor(results[i]));
+      setNeedle(MIN_A + Math.random()*95);
+    }
+
+    countRateEl.textContent = ((totalFails/totalAttempts)*100).toFixed(4) + '%';
+    addLogEntry(isFailure);
+
+    busy = false;
+    leverCaption.textContent = 'Tirar de la palanca para ensayar';
+    leverCaption.classList.remove('disabled');
+  }
+
+  function triggerAlarm(){
+    rig.classList.add('shudder');
+    beacon.classList.add('active');
+    setTimeout(() => {
+      rig.classList.remove('shudder');
+      beacon.classList.remove('active');
+    }, 1400);
+  }
+
+  function addLogEntry(hasFailed){
+    const li = document.createElement('li');
+    li.className = 'ticker-item';
+    const id = String(Math.floor(Math.random()*90000)+10000);
+    const timestamp = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const statusHtml = hasFailed
+      ? `<span class="status fail">COLAPSO — falla detectada</span>`
+      : `<span class="status ok">Estable — dentro de tolerancia</span>`;
+    li.innerHTML = `<div class="row1"><span>[${timestamp}]</span><span>ID ${id}</span></div>${statusHtml}`;
+    historyList.prepend(li);
+  }
+
+  slots.forEach(s => s.innerHTML = randomIcon());
+</script>
 </body>
 </html>
