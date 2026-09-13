@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ensayo de Falla Estructural — Simulador ELU Híbrido</title>
+<title>Ensayo de Falla Estructural — Simulador ELU</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Importar Three.js para la palanca 3D -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
   :root{
@@ -52,14 +51,8 @@
     text-align:center;
     margin-bottom:26px;
   }
-  header.topbar .mark{
-    font-family:'JetBrains Mono',monospace;
-    font-size:.68rem;
-    letter-spacing:.16em;
-    color:var(--metal-3);
-  }
   header.topbar h1{
-    font-size:1.9rem;
+    font-size:2.2rem;
     font-weight:600;
     letter-spacing:.02em;
     color:var(--metal-hi);
@@ -70,7 +63,7 @@
   header.topbar .subtitle{
     font-family:'JetBrains Mono',monospace;
     color:#8a8d90;
-    font-size:.78rem;
+    font-size:.85rem;
     margin-top:8px;
   }
 
@@ -125,7 +118,7 @@
     letter-spacing:.12em;
     color:#a7abae;
     text-align:center;
-    margin-bottom:10px;
+    margin-bottom:15px;
     text-transform:uppercase;
   }
 
@@ -134,10 +127,10 @@
     display:flex;
     justify-content:center;
     gap:14px;
-    margin-bottom:22px;
+    margin-bottom:40px; /* Aumentado el margen inferior al quitar el medidor */
   }
   .window{
-    width:96px;height:110px;
+    width:105px;height:120px;
     background:#050505;
     border-radius:6px;
     border:7px solid var(--bezel);
@@ -157,33 +150,8 @@
     background:linear-gradient(120deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 32%, rgba(255,255,255,0) 68%, rgba(255,255,255,.05) 100%);
     pointer-events:none;
   }
-  .window svg{ width:46px; height:46px; filter:drop-shadow(0 0 6px rgba(255,176,32,.55)); }
+  .window svg{ width:50px; height:50px; filter:drop-shadow(0 0 6px rgba(255,176,32,.55)); }
   .window.spin svg{ opacity:.55; filter:blur(2px); }
-
-  /* ---- Load gauge ---- */
-  .gauge-wrap{
-    display:flex;
-    justify-content:center;
-    margin-bottom:6px;
-  }
-  .gauge{ width:220px; }
-  .gauge .rim{ fill:none; stroke:#17181a; stroke-width:10; }
-  .gauge .face{ fill:#111214; }
-  .gauge .tick{ stroke:#6a6e72; stroke-width:2; }
-  .gauge .tick.major{ stroke:#9a9ea1; stroke-width:2.6; }
-  .gauge .needle{ stroke:#ff5b4a; stroke-width:3.2; stroke-linecap:round; transform-origin:100px 100px; }
-  .gauge .needle.settle{ transition:transform .65s cubic-bezier(.34,1.4,.4,1); }
-  .gauge .hub{ fill:#cfd3d6; stroke:#7a7d80; stroke-width:1.5; }
-  .gauge-caption{
-    text-align:center;
-    font-family:'JetBrains Mono',monospace;
-    font-size:.64rem;
-    letter-spacing:.1em;
-    color:#8a8d90;
-    margin-top:-6px;
-    margin-bottom:22px;
-    text-transform:uppercase;
-  }
 
   /* ---- Lever ---- */
   .lever-zone{
@@ -193,7 +161,7 @@
     margin-bottom:22px;
   }
   .lever-mount{
-    width:150px; height:78px;
+    width:150px; height:90px;
     position:relative;
   }
   .lever-track{
@@ -207,27 +175,41 @@
     background:linear-gradient(180deg, #232426, #17181a);
     box-shadow:inset 0 3px 6px rgba(0,0,0,.7);
   }
-  /* Canvas 3D que reemplaza al brazo CSS */
+  
   #lever3d-canvas{
     position:absolute;
     bottom:-10px; left:50%;
     transform:translateX(-50%);
     width:150px; height:200px;
     z-index:10;
-    cursor:pointer;
-    outline:none;
+  }
+
+  /* ZONA TÁCTIL INVISIBLE PARA LA BOLA ROJA */
+  .hitbox{
+    position: absolute;
+    top: -95px; /* Ajustado para coincidir con la bola roja */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: transparent; /* Invisible */
+    z-index: 20;
+    cursor: pointer;
+    border: none;
+    outline: none;
     -webkit-tap-highlight-color: transparent;
   }
-  #lever3d-canvas:focus-visible{
-    outline: 2px solid var(--amber);
-    border-radius: 10px;
+  .hitbox:focus-visible{
+    border: 2px solid var(--amber);
   }
+
   .lever-caption{
     font-family:'JetBrains Mono',monospace;
     font-size:.68rem;
     letter-spacing:.1em;
     color:#a7abae;
-    margin-top:14px;
+    margin-top:20px;
     text-transform:uppercase;
   }
   .lever-caption.disabled{ color:#5c5f61; }
@@ -380,7 +362,7 @@
     width:100%;
     max-width:1180px;
     display:grid;
-    grid-template-columns:2fr 1.4fr 1fr 1fr;
+    grid-template-columns: 2fr 1.5fr 1fr; /* Ajustado al quitar la revisión */
     background:linear-gradient(180deg,#7d8186,#54585c);
     border-radius:6px;
     border:1px solid #2a2b2c;
@@ -430,10 +412,9 @@
   @media (max-width:760px){
     .dashboard{ transform:none; }
     .stage{ perspective:none; }
-    .window{ width:74px; height:88px; }
-    .window svg{ width:34px; height:34px; }
-    .gauge{ width:170px; }
-    .nameplate{ grid-template-columns:1fr 1fr; }
+    .window{ width:80px; height:100px; }
+    .window svg{ width:40px; height:40px; }
+    .nameplate{ grid-template-columns:1fr; } /* En celular se apila */
   }
 </style>
 </head>
@@ -441,7 +422,6 @@
 
 <div class="stage">
   <header class="topbar">
-    <div class="mark">ENSAYO N.º ELU-100K · UNIDAD DE PRUEBAS ESTRUCTURALES</div>
     <h1>Ensayo de Falla Estructural</h1>
     <div class="subtitle">Simulación de Estado Límite Último — probabilidad de colapso 1:100.000</div>
   </header>
@@ -453,7 +433,7 @@
       <div class="beacon" id="beacon"></div>
 
       <div class="hazard-strip"></div>
-      <div class="panel-label">Indicadores de carga — muestreo por elemento</div>
+      <div class="panel-label">Muestreo aleatorio por elemento</div>
 
       <div class="window-row" id="machine">
         <div class="window" id="slot1"></div>
@@ -461,24 +441,12 @@
         <div class="window" id="slot3"></div>
       </div>
 
-      <div class="gauge-wrap">
-        <svg class="gauge" viewBox="0 0 200 130" id="gaugeSvg">
-          <path class="rim" d=""></path>
-          <path id="zoneGreen" fill="none" stroke="#2f7d4f" stroke-width="10"></path>
-          <path id="zoneAmber" fill="none" stroke="#c98a1f" stroke-width="10"></path>
-          <path id="zoneRed" fill="none" stroke="#a8362a" stroke-width="10"></path>
-          <g id="ticks"></g>
-          <line class="needle settle" id="needle" x1="100" y1="100" x2="100" y2="34"></line>
-          <circle class="hub" cx="100" cy="100" r="7"></circle>
-        </svg>
-      </div>
-      <div class="gauge-caption">Carga aplicada — escala relativa</div>
-
       <div class="lever-zone">
         <div class="lever-mount">
           <div class="lever-track"></div>
-          <!-- Reemplazo del brazo de CSS por el Canvas de Three.js -->
-          <canvas id="lever3d-canvas" tabindex="0" role="button" aria-label="Iniciar ensayo"></canvas>
+          <canvas id="lever3d-canvas"></canvas>
+          <!-- ZONA DE CLICK INVISIBLE MÁS GRANDE -->
+          <button class="hitbox" id="btn-hitbox" aria-label="Tirar de la palanca"></button>
         </div>
         <div class="lever-caption" id="leverCaption">Tirar de la palanca para ensayar</div>
       </div>
@@ -514,7 +482,6 @@
     <div><div class="k">PROYECTO</div><div class="v">Confiabilidad Estructural</div></div>
     <div><div class="k">DOCENTE</div><div class="v">Ing. Carlos Achaval</div></div>
     <div><div class="k">ESCALA</div><div class="v">1 : 100.000</div></div>
-    <div><div class="k">REV.</div><div class="v">Híbrida</div></div>
   </div>
 </div>
 
@@ -523,7 +490,7 @@
      CONFIGURACIÓN DE LA PALANCA 3D AISLADA (Three.js)
      ========================================================= */
   const lCanvas = document.getElementById('lever3d-canvas');
-  let pull3DLever = () => {}; // Función que conectará el 3D con la lógica
+  let pull3DLever = () => {}; 
 
   if (window.WebGLRenderingContext) {
     const lRenderer = new THREE.WebGLRenderer({ canvas: lCanvas, alpha: true, antialias: true });
@@ -531,34 +498,31 @@
     lRenderer.setPixelRatio(window.devicePixelRatio || 1);
 
     const lScene = new THREE.Scene();
-    
-    // Cámara ajustada para ver perfectamente la palanca dentro del espacio
     const lCamera = new THREE.PerspectiveCamera(45, 150/200, 0.1, 10);
     lCamera.position.set(0, 1.3, 4); 
     lCamera.lookAt(0, 0.6, 0);
 
-    // Luces
     lScene.add(new THREE.AmbientLight(0x9099a3, 0.6));
     const lDirLight = new THREE.DirectionalLight(0xffffff, 1.0);
     lDirLight.position.set(2, 5, 4);
     lScene.add(lDirLight);
 
     const leverPivot = new THREE.Group();
-    leverPivot.position.set(0, 0.1, 0); // Eje de rotación sobre la pista visual
+    leverPivot.position.set(0, 0.1, 0); 
     lScene.add(leverPivot);
 
     const rodMat = new THREE.MeshStandardMaterial({ color:0xcfd3d6, metalness:0.85, roughness:0.25 });
     const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.4, 16), rodMat);
-    rod.position.y = 0.7; // Levantar el tubo para que la base quede en el pivote
+    rod.position.y = 0.7; 
     leverPivot.add(rod);
 
     const ballMat = new THREE.MeshStandardMaterial({ color:0xc0392b, metalness:0.35, roughness:0.3 });
     const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25, 20, 20), ballMat);
-    ball.position.y = 1.45; // Bola en la punta del tubo
+    ball.position.y = 1.45; 
     leverPivot.add(ball);
 
-    const REST_X = -0.45; // Posición de reposo
-    const PULL_X = 0.8;   // Posición jalada
+    const REST_X = -0.45; 
+    const PULL_X = 0.8;   
     leverPivot.rotation.x = REST_X;
 
     function render3D() {
@@ -586,7 +550,7 @@
   }
 
   /* =========================================================
-     LÓGICA DEL SIMULADOR 2D ORIGINAL
+     LÓGICA DEL SIMULADOR 
      ========================================================= */
   const ICONS = {
     bridge: `<svg viewBox="0 0 64 64"><path d="M6 40 Q32 12 58 40" fill="none" stroke="#ffb020" stroke-width="3" stroke-linecap="round"/><path d="M6 40h52" stroke="#ffb020" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 40v9M24 40v9M32 40v9M40 40v9M50 40v9" stroke="#ffb020" stroke-width="2.4" stroke-linecap="round"/></svg>`,
@@ -610,6 +574,7 @@
     return key === 'warning' ? WARNING_ICON : ICONS[key];
   }
 
+  const btnHitbox = document.getElementById('btn-hitbox');
   const leverCaption = document.getElementById('leverCaption');
   const slots = [document.getElementById('slot1'), document.getElementById('slot2'), document.getElementById('slot3')];
   const historyList = document.getElementById('historyList');
@@ -618,62 +583,25 @@
   const countRateEl = document.getElementById('count-rate');
   const rig = document.getElementById('rig');
   const beacon = document.getElementById('beacon');
-  const needle = document.getElementById('needle');
 
   let totalAttempts = 0, totalFails = 0, firstRun = true, busy = false;
 
   function pad(n){ return String(n).padStart(3,'0'); }
-
-  /* ---- Build gauge geometry ---- */
-  function polar(cx,cy,r,angleDeg){
-    const a = (angleDeg-90) * Math.PI/180;
-    return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
-  }
-  function arcPath(cx,cy,r,startAngle,endAngle){
-    const start = polar(cx,cy,r,endAngle);
-    const end = polar(cx,cy,r,startAngle);
-    const large = (endAngle-startAngle) <= 180 ? "0":"1";
-    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
-  }
-  const CX=100, CY=100, R=68;
-  const MIN_A=-115, MAX_A=115;
-  document.querySelector('.rim').setAttribute('d', arcPath(CX,CY,R,MIN_A,MAX_A));
-  document.getElementById('zoneGreen').setAttribute('d', arcPath(CX,CY,R,MIN_A,35));
-  document.getElementById('zoneAmber').setAttribute('d', arcPath(CX,CY,R,35,90));
-  document.getElementById('zoneRed').setAttribute('d', arcPath(CX,CY,R,90,MAX_A));
-
-  const ticksGroup = document.getElementById('ticks');
-  for(let a=MIN_A; a<=MAX_A; a+=(MAX_A-MIN_A)/12){
-    const p1 = polar(CX,CY,R-10,a);
-    const p2 = polar(CX,CY,R-2,a);
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y);
-    line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
-    line.setAttribute('class','tick');
-    ticksGroup.appendChild(line);
-  }
-
-  function setNeedle(angle){
-    needle.setAttribute('transform', `rotate(${angle} ${CX} ${CY})`);
-  }
-  setNeedle(MIN_A + 18);
 
   /* ---- Interaction ---- */
   function runTest(){
     if (busy) return;
     busy = true;
     
-    pull3DLever(); // Disparar la animación 3D de la palanca
+    pull3DLever(); 
 
     leverCaption.textContent = 'Ensayando…';
     leverCaption.classList.add('disabled');
     slots.forEach(s => s.classList.add('spin'));
-    needle.classList.remove('settle');
 
     let ticks = 0;
     const jitter = setInterval(() => {
       slots.forEach(s => s.innerHTML = randomIcon());
-      setNeedle(MIN_A + Math.random()*(MAX_A-MIN_A));
       ticks++;
       if (ticks > 14){
         clearInterval(jitter);
@@ -683,9 +611,9 @@
     }, 60);
   }
 
-  // Event Listeners conectados al Canvas de Three.js
-  lCanvas.addEventListener('click', runTest);
-  lCanvas.addEventListener('keydown', (e) => { 
+  // Ahora el click se hace sobre el botón invisible que está justo encima de la bola roja
+  btnHitbox.addEventListener('click', runTest);
+  btnHitbox.addEventListener('keydown', (e) => { 
     if(e.key === 'Enter' || e.key === ' '){ 
       e.preventDefault(); 
       runTest(); 
@@ -701,16 +629,13 @@
     const results = [drawSymbol(), drawSymbol(), drawSymbol()];
     const isFailure = results.every(k => k === 'warning');
 
-    needle.classList.add('settle');
     if (isFailure){
       totalFails++;
       countFailsEl.textContent = pad(totalFails);
       slots.forEach(s => s.innerHTML = FAIL_ICON);
-      setNeedle(MAX_A - 6);
       triggerAlarm();
     } else {
       slots.forEach((s, i) => s.innerHTML = iconMarkupFor(results[i]));
-      setNeedle(MIN_A + Math.random()*95);
     }
 
     countRateEl.textContent = ((totalFails/totalAttempts)*100).toFixed(4) + '%';
