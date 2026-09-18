@@ -164,7 +164,7 @@
 <div class="stage">
   <header class="topbar">
     <h1>Ensayo de Falla Estructural</h1>
-    <div class="subtitle">Simulación de Estado Límite Último — probabilidad de colapso 1:100.000</div>
+    <div class="subtitle">Simulación de Estado Límite Último — probabilidad de colapso 1:100</div>
   </header>
 
   <div class="dashboard">
@@ -227,7 +227,7 @@
   <div class="nameplate">
     <div><div class="k">PROYECTO</div><div class="v">Confiabilidad Estructural</div></div>
     <div><div class="k">DOCENTE</div><div class="v">Ing. Carlos Achabal</div></div>
-    <div><div class="k">PROBABILIDAD</div><div class="v">1 : 100.000</div></div>
+    <div><div class="k">PROBABILIDAD</div><div class="v">1 : 100</div></div>
   </div>
 </div>
 
@@ -396,7 +396,7 @@
   const safeKeys = Object.keys(ICONS);
   function randomIcon(){ return ICONS[safeKeys[Math.floor(Math.random()*safeKeys.length)]]; }
   
-  const WARNING_PROB = Math.cbrt(1/100000); 
+ const WARNING_PROB = Math.cbrt(1/100);
   function drawSymbol(){
     if (Math.random() < WARNING_PROB) return 'warning';
     return safeKeys[Math.floor(Math.random()*safeKeys.length)];
